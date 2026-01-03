@@ -69,6 +69,7 @@ class AvailabilityChecker:
         logger.info(f"Starting availability check for {len(self.products)} products")
 
         async with ZaraApiClient(
+            api_token=self.env_config.zara_api_token,
             user_agent=self.env_config.zara_user_agent,
         ) as api_client:
             # Create tasks for all products

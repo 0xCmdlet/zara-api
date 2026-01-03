@@ -4,8 +4,15 @@
       "name": "Mantel mit Wollanteil und Kunstfellkragen",
       "link": "https://www.zara.com/de/de/mantel-mit-wollanteil-und-kunstfellkragen-zw-collection-p03736251.html?v1=463981818",
       "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/463981818/availability",
-      "size": "M",
-      "sku": 450244943
+      "size": "L",
+      "sku": 463979581
+    },
+    {
+      "name": "OVERSIZE-GEHROCK ZW COLLECTION",
+      "link": "https://www.zara.com/de/de/oversize-gehrock-zw-collection-p08819062.html?v1=476414776",
+      "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/476414776/availability",
+      "size": "S",
+      "sku": 476411639
     }
   ]
 }

@@ -13,6 +13,7 @@ from .models import Product, ProductsConfig
 
 class EnvConfig(BaseModel):
     """Environment configuration model"""
+    zara_api_token: str
     zara_user_agent: str
     smtp_host: str
     smtp_port: int
@@ -30,6 +31,7 @@ def load_env_config() -> EnvConfig:
 
     try:
         config = EnvConfig(
+            zara_api_token=os.getenv("ZARA_API_TOKEN", ""),
             zara_user_agent=os.getenv("ZARA_USER_AGENT", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"),
             smtp_host=os.getenv("SMTP_HOST", ""),
             smtp_port=int(os.getenv("SMTP_PORT", "465")),
@@ -42,6 +44,8 @@ def load_env_config() -> EnvConfig:
         )
 
         # Validate required fields
+        if not config.zara_api_token:
+            raise ValueError("ZARA_API_TOKEN is required in .env file")
         if not config.smtp_host:
             raise ValueError("SMTP_HOST is required in .env file")
         if not config.smtp_username:

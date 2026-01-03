@@ -47,6 +47,9 @@ cp .env.example .env
 Edit `.env` with your configuration:
 
 ```env
+# Zara API Configuration
+ZARA_API_TOKEN=your_jwt_bearer_token_here
+
 # SMTP Configuration (uses SSL on port 465)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
@@ -61,6 +64,17 @@ EMAIL_TO=recipient@example.com
 CHECK_INTERVAL=300
 LOG_LEVEL=INFO
 ```
+
+**Getting Zara API Token:**
+1. Open Zara website in Chrome
+2. Open Developer Tools (F12)
+3. Go to Network tab
+4. Navigate to a product page
+5. Look for requests to `itxrest/*/catalog/store/*/product/id/*/availability`
+6. Copy the `Authorization: Bearer ...` token from request headers
+7. Paste the token (without "Bearer ") into `ZARA_API_TOKEN` in `.env`
+
+**Note:** The JWT token expires after ~24 hours. You'll need to refresh it periodically.
 
 **Gmail App Password:**
 If using Gmail, create an App Password:

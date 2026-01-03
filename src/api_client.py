@@ -40,7 +40,8 @@ class RateLimitError(ApiError):
 class ZaraApiClient:
     """Async client for Zara availability API"""
 
-    def __init__(self, user_agent: str):
+    def __init__(self, api_token: str, user_agent: str):
+        self.api_token = api_token
         self.user_agent = user_agent
         self.session: Optional[aiohttp.ClientSession] = None
 
@@ -55,14 +56,20 @@ class ZaraApiClient:
         if self.session:
             await self.session.close()
 
-    def _get_headers(self) -> dict:
+    def _get_headers(self, referer: str = None) -> dict:
         """Build request headers"""
-        return {
+        headers = {
+            "Authorization": f"Bearer {self.api_token}",
             "User-Agent": self.user_agent,
             "sec-ch-ua-platform": '"macOS"',
             "sec-ch-ua": '"Chromium";v="143", "Not A(Brand";v="24"',
             "sec-ch-ua-mobile": "?0",
         }
+
+        if referer:
+            headers["Referer"] = referer
+
+        return headers
 
     @retry(
         retry=retry_if_exception_type((aiohttp.ClientError, ApiError)),
@@ -90,19 +97,24 @@ class ZaraApiClient:
             raise RuntimeError("Session not initialized. Use 'async with' context manager.")
 
         url = str(product.api_endpoint)
-        headers = self._get_headers()
+        headers = self._get_headers(referer=str(product.link))
 
         logger.debug(f"Checking availability for SKU {product.sku}: {url}")
+        logger.debug(f"Request headers: {headers}")
 
         try:
             async with self.session.get(url, headers=headers) as response:
                 # Handle different status codes
                 if response.status == 200:
                     data = await response.json()
+                    logger.debug(f"API Response for {product.sku}: {data}")
                     api_response = ApiResponse(**data)
                     logger.debug(
                         f"SKU {product.sku}: Got {len(api_response.skusAvailability)} SKUs"
                     )
+                    # Log all SKUs in the response
+                    for sku_avail in api_response.skusAvailability:
+                        logger.debug(f"  - SKU {sku_avail.sku}: {sku_avail.availability}")
                     return api_response
 
                 elif response.status in (401, 403):
