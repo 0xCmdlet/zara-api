@@ -34,6 +34,44 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+4. Install the Playwright browser (used to auto-fetch the Zara token/cookies):
+```bash
+playwright install chromium
+# on a fresh Linux VPS, also pull in the browser's system libraries:
+playwright install-deps chromium
+```
+
+The browser runs **headless by default**, so no display is needed on a VPS —
+just `python -m src.main`. If Akamai starts blocking the headless session, set
+`BROWSER_HEADLESS=false` in `.env` and run headful under a virtual display:
+```bash
+sudo apt-get install -y xvfb
+xvfb-run -a python -m src.main
+```
+
+## How it works (no token needed)
+
+Zara's availability API is protected by Akamai Bot Manager, which rejects plain
+HTTP clients (even with a copied token/cookies) and serves a default "fake"
+product instead. The key finding: the availability endpoint authenticates off a
+**real browser's session cookies alone** — no bearer token required.
+
+So the checker keeps **one real Google Chrome session alive** (via Playwright)
+and runs each availability lookup as an in-browser
+`fetch(..., {credentials: 'include'})` from a zara.com page, reading the JSON
+straight back. There are no tokens or cookies to copy from DevTools anymore.
+
+- On startup it opens Chrome, navigates to a product page to establish a valid
+  session, and reuses that session for every check.
+- If a stale/blocked session is detected (Zara returns a default "fake" product
+  whose SKUs never match the ones you track), those SKUs are added to
+  `banned_skus.json`, the session is renewed (re-navigated to refresh the Akamai
+  cookies), and the check is retried automatically.
+
+**Why real Chrome?** Akamai blocks Playwright's *bundled* Chromium even headless,
+but lets real Google Chrome (`BROWSER_CHANNEL=chrome`) through, including
+headless. Chrome must be installed on the host (see installation step 4).
+
 ## Configuration
 
 ### 1. Environment Variables
@@ -47,8 +85,13 @@ cp .env.example .env
 Edit `.env` with your configuration:
 
 ```env
-# Zara API Configuration
-ZARA_API_TOKEN=your_jwt_bearer_token_here
+# Zara (no token/cookies needed - a real browser session handles auth)
+ZARA_USER_AGENT=Mozilla/5.0 (Macintosh; ...) Chrome/143.0.0.0 Safari/537.36
+
+# Browser session
+BROWSER_HEADLESS=true
+BROWSER_CHANNEL=chrome
+# BROWSER_PROXY=http://user:pass@host:port   # only if a VPS IP gets blocked
 
 # SMTP Configuration (uses SSL on port 465)
 SMTP_HOST=smtp.gmail.com
@@ -65,16 +108,9 @@ CHECK_INTERVAL=300
 LOG_LEVEL=INFO
 ```
 
-**Getting Zara API Token:**
-1. Open Zara website in Chrome
-2. Open Developer Tools (F12)
-3. Go to Network tab
-4. Navigate to a product page
-5. Look for requests to `itxrest/*/catalog/store/*/product/id/*/availability`
-6. Copy the `Authorization: Bearer ...` token from request headers
-7. Paste the token (without "Bearer ") into `ZARA_API_TOKEN` in `.env`
-
-**Note:** The JWT token expires after ~24 hours. You'll need to refresh it periodically.
+**No token or cookies to copy.** Authentication is handled entirely by the real
+Chrome session (see "How it works" above) — just make sure Chrome is installed
+(`playwright install chrome`).
 
 **Gmail App Password:**
 If using Gmail, create an App Password:
@@ -210,9 +246,19 @@ zara-api/
 - Check if the product is still available on the website
 - Verify the `api_endpoint` URL is correct
 
-### Rate limiting
-- The checker includes retry logic with exponential backoff
-- If you get rate limited, increase `CHECK_INTERVAL` in `.env`
+### `403 Access Denied` / no session
+- Akamai blocked the browser. Make sure `BROWSER_CHANNEL=chrome` and that real
+  Google Chrome is installed (`playwright install chrome`) — bundled Chromium is
+  blocked.
+- On a VPS, the datacenter IP may be flagged. Set `BROWSER_PROXY` to a
+  residential proxy.
+
+### SKU not found / all products return the same SKUs
+- This is a stale/blocked session: Zara served a default "fake" product. The
+  checker detects this automatically, bans those SKUs (`banned_skus.json`),
+  renews the browser session, and retries.
+- Verify each product's `sku` actually belongs to its `api_endpoint`'s product.
+- Run with `--log-level DEBUG` to see which SKUs are returned.
 
 ## State Transitions
 

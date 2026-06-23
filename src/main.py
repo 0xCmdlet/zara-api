@@ -7,6 +7,8 @@ import signal
 import sys
 from pathlib import Path
 
+from .banned_skus import BannedSkuStore
+from .browser_session import BrowserSession
 from .checker import AvailabilityChecker
 from .config import load_env_config, load_products
 from .state_manager import StateManager
@@ -111,11 +113,36 @@ async def async_main() -> None:
     state_manager = StateManager()
     logger.info("State manager initialized")
 
+    # Initialize banned-SKU store (recognises fake/stale API responses)
+    banned_store = BannedSkuStore()
+    logger.info(f"Banned SKU store initialized ({len(banned_store.skus)} known)")
+
+    # Set up the persistent real-browser session (no token needed: the
+    # availability API authenticates off the browser's session cookies).
+    bootstrap_url = env_config.zara_bootstrap_url or str(products[0].link)
+    session = BrowserSession(
+        bootstrap_url=bootstrap_url,
+        user_agent=env_config.zara_user_agent,
+        headless=env_config.browser_headless,
+        timeout=env_config.browser_timeout,
+        channel=env_config.browser_channel,
+        proxy=env_config.browser_proxy,
+    )
+
+    try:
+        await session.start()
+    except Exception as e:
+        logger.error(f"Could not establish Zara browser session: {e}")
+        await session.close()
+        sys.exit(1)
+
     # Create checker
     checker = AvailabilityChecker(
         products=products,
         env_config=env_config,
         state_manager=state_manager,
+        session=session,
+        banned_store=banned_store,
     )
 
     # Setup signal handlers for graceful shutdown
@@ -146,6 +173,7 @@ async def async_main() -> None:
         state_manager.save_state()
         sys.exit(1)
     finally:
+        await session.close()
         logger.info("Zara Product Availability Checker Stopped")
 
 

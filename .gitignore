@@ -4,6 +4,9 @@
 # State file
 state.json
 
+# Banned (fake) SKU store
+banned_skus.json
+
 # CSV log
 availability_log.csv
 

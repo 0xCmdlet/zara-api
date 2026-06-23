@@ -13,7 +13,6 @@ from .models import Product, ProductsConfig
 
 class EnvConfig(BaseModel):
     """Environment configuration model"""
-    zara_api_token: str
     zara_user_agent: str
     smtp_host: str
     smtp_port: int
@@ -23,6 +22,12 @@ class EnvConfig(BaseModel):
     email_to: str
     check_interval: int = 300
     log_level: str = "INFO"
+    # Browser-based credential retrieval
+    browser_headless: bool = True
+    browser_timeout: int = 30
+    browser_channel: str = "chrome"
+    browser_proxy: Optional[str] = None
+    zara_bootstrap_url: Optional[str] = None
 
 
 def load_env_config() -> EnvConfig:
@@ -31,7 +36,6 @@ def load_env_config() -> EnvConfig:
 
     try:
         config = EnvConfig(
-            zara_api_token=os.getenv("ZARA_API_TOKEN", ""),
             zara_user_agent=os.getenv("ZARA_USER_AGENT", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"),
             smtp_host=os.getenv("SMTP_HOST", ""),
             smtp_port=int(os.getenv("SMTP_PORT", "465")),
@@ -41,11 +45,16 @@ def load_env_config() -> EnvConfig:
             email_to=os.getenv("EMAIL_TO", ""),
             check_interval=int(os.getenv("CHECK_INTERVAL", "300")),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
+            browser_headless=os.getenv("BROWSER_HEADLESS", "true").lower() in ("1", "true", "yes"),
+            browser_timeout=int(os.getenv("BROWSER_TIMEOUT", "30")),
+            browser_channel=os.getenv("BROWSER_CHANNEL", "chrome"),
+            browser_proxy=os.getenv("BROWSER_PROXY") or None,
+            zara_bootstrap_url=os.getenv("ZARA_BOOTSTRAP_URL") or None,
         )
 
-        # Validate required fields
-        if not config.zara_api_token:
-            raise ValueError("ZARA_API_TOKEN is required in .env file")
+        # Validate required fields. The Zara token is no longer required here:
+        # it is minted on startup by the browser fetcher (an env token, if set,
+        # only serves as an initial fallback).
         if not config.smtp_host:
             raise ValueError("SMTP_HOST is required in .env file")
         if not config.smtp_username:

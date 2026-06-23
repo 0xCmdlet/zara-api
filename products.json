@@ -1,18 +1,18 @@
 {
   "products": [
     {
-      "name": "Mantel mit Wollanteil und Kunstfellkragen",
-      "link": "https://www.zara.com/de/de/mantel-mit-wollanteil-und-kunstfellkragen-zw-collection-p03736251.html?v1=463981818",
-      "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/463981818/availability",
+      "name": "Mantel 1",
+      "link": "https://www.zara.com/de/de/mantel-mit-gurtel-aus-100-leinen-%E2%80%93-zw-collection-p02716947.html?v1=561130297&v2=2546081",
+      "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/561130297/availability",
       "size": "L",
-      "sku": 463979581
+      "sku": 519970232
     },
     {
-      "name": "OVERSIZE-GEHROCK ZW COLLECTION",
-      "link": "https://www.zara.com/de/de/oversize-gehrock-zw-collection-p08819062.html?v1=476414776",
-      "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/476414776/availability",
+      "name": "EXTRA LANGER GÜRTEL AUS 100 % LEDER",
+      "link": "https://www.zara.com/de/de/extra-langer-gurtel-aus-100-leder-p06399002.html?v1=560499288&v2=2546081",
+      "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/560499288/availability",
       "size": "S",
-      "sku": 476411639
+      "sku": 498613953
     }
   ]
 }

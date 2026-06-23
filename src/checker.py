@@ -4,7 +4,8 @@ import asyncio
 import logging
 from typing import Optional
 
-from .api_client import ZaraApiClient, ApiError
+from .banned_skus import BannedSkuStore
+from .browser_session import BrowserSession, AuthenticationError
 from .config import EnvConfig
 from .csv_logger import CsvLogger
 from .models import Product, ApiResponse, SkuAvailability
@@ -23,10 +24,16 @@ class AvailabilityChecker:
         products: list[Product],
         env_config: EnvConfig,
         state_manager: StateManager,
+        session: BrowserSession,
+        banned_store: BannedSkuStore,
+        max_refresh_attempts: int = 2,
     ):
         self.products = products
         self.env_config = env_config
         self.state_manager = state_manager
+        self.session = session
+        self.banned_store = banned_store
+        self.max_refresh_attempts = max_refresh_attempts
 
         # Initialize notifier
         self.notifier = EmailNotifier(
@@ -43,7 +50,6 @@ class AvailabilityChecker:
 
     async def _check_single_product(
         self,
-        api_client: ZaraApiClient,
         product: Product,
     ) -> tuple[Product, Optional[ApiResponse], Optional[Exception]]:
         """
@@ -53,7 +59,7 @@ class AvailabilityChecker:
             Tuple of (product, api_response, error)
         """
         try:
-            api_response = await api_client.check_availability(product)
+            api_response = await self.session.check_availability(product)
             return (product, api_response, None)
         except Exception as e:
             logger.error(f"Error checking {product.name} (SKU: {product.sku}): {e}")
@@ -61,25 +67,15 @@ class AvailabilityChecker:
 
     async def check_all_products(self) -> list[tuple[Product, Optional[ApiResponse], Optional[Exception]]]:
         """
-        Check all products concurrently
+        Check all products concurrently via the shared browser session
 
         Returns:
             List of (product, api_response, error) tuples
         """
         logger.info(f"Starting availability check for {len(self.products)} products")
 
-        async with ZaraApiClient(
-            api_token=self.env_config.zara_api_token,
-            user_agent=self.env_config.zara_user_agent,
-        ) as api_client:
-            # Create tasks for all products
-            tasks = [
-                self._check_single_product(api_client, product)
-                for product in self.products
-            ]
-
-            # Run all checks concurrently
-            results = await asyncio.gather(*tasks)
+        tasks = [self._check_single_product(product) for product in self.products]
+        results = await asyncio.gather(*tasks)
 
         logger.info(f"Completed availability check for {len(self.products)} products")
         return results
@@ -94,6 +90,59 @@ class AvailabilityChecker:
             if sku_avail.sku == target_sku:
                 return sku_avail
         return None
+
+    @staticmethod
+    def _returned_skus(api_response: ApiResponse) -> set[int]:
+        """All SKUs present in an API response."""
+        return {s.sku for s in api_response.skusAvailability}
+
+    def _detect_stale(
+        self,
+        results: list[tuple[Product, Optional[ApiResponse], Optional[Exception]]],
+    ) -> tuple[bool, set[int]]:
+        """Detect whether this batch came from a stale/blocked session.
+
+        A stale session is identified by any of:
+        - Every product failed with an authentication error.
+        - Multiple products returned the *same* SKU set, none of which match the
+          SKU we actually track (Zara served one default "fake" product).
+        - A product's tracked SKU is absent and every SKU it returned is already
+          on the banned list.
+
+        Returns:
+            (is_stale, fake_skus) where ``fake_skus`` are the SKUs to ban.
+        """
+        responses = [(p, r) for p, r, e in results if r is not None]
+        auth_errors = [e for _, _, e in results if isinstance(e, AuthenticationError)]
+
+        # Everything failed authentication -> definitely stale.
+        if not responses and auth_errors:
+            return True, set()
+
+        stale = False
+        fake_skus: set[int] = set()
+
+        # Signature 1: all products returned an identical SKU set, none tracked.
+        sku_sets = [frozenset(self._returned_skus(r)) for _, r in responses]
+        if len(sku_sets) > 1 and len(set(sku_sets)) == 1:
+            any_tracked = any(
+                self._find_sku_in_response(r, p.sku) is not None
+                for p, r in responses
+            )
+            if not any_tracked:
+                stale = True
+                fake_skus |= set(sku_sets[0])
+
+        # Signature 2: tracked SKU missing and every returned SKU is banned.
+        for p, r in responses:
+            if self._find_sku_in_response(r, p.sku) is not None:
+                continue
+            returned = self._returned_skus(r)
+            if returned and returned <= self.banned_store.skus:
+                stale = True
+                fake_skus |= returned
+
+        return stale, fake_skus
 
     def process_results(
         self,
@@ -169,9 +218,53 @@ class AvailabilityChecker:
         self.state_manager.save_state()
 
     async def run_once(self) -> None:
-        """Run availability check once"""
-        results = await self.check_all_products()
-        self.process_results(results)
+        """Run availability check once, refreshing the session if stale.
+
+        If the batch looks like a stale/blocked session, the offending SKUs are
+        added to the banned list, the browser session is renewed, and the check
+        is retried (up to ``max_refresh_attempts`` times).
+        """
+        for attempt in range(self.max_refresh_attempts + 1):
+            results = await self.check_all_products()
+            stale, fake_skus = self._detect_stale(results)
+
+            if not stale:
+                self.process_results(results)
+                return
+
+            if fake_skus:
+                newly_banned = self.banned_store.add(fake_skus)
+                if newly_banned:
+                    self.banned_store.save()
+                    logger.warning(
+                        f"Detected fake SKUs from stale session, banned: "
+                        f"{sorted(newly_banned)}"
+                    )
+
+            if attempt < self.max_refresh_attempts:
+                logger.warning(
+                    f"Stale session detected "
+                    f"(attempt {attempt + 1}/{self.max_refresh_attempts}). "
+                    f"Renewing browser session..."
+                )
+                try:
+                    await self.session.refresh_session()
+                except Exception as e:
+                    logger.error(f"Session refresh failed: {e}")
+                    break
+            else:
+                logger.error(
+                    "Session still stale after refresh attempts; "
+                    "skipping this cycle."
+                )
+
+        # Out of attempts (or refresh failed): record the unknown state without
+        # sending bogus notifications.
+        for product, _, _ in results:
+            self.state_manager.update_state(
+                sku=product.sku, availability="unknown", notified=False
+            )
+        self.state_manager.save_state()
 
     async def run_continuous(self, interval_seconds: int) -> None:
         """
