@@ -1,0 +1,14 @@
+{
+  "products": [
+    {
+      "name": "MANGO PRODUCT 27007164",
+      "link": "https://shop.mango.com/de/de/p/27007164",
+      "country_iso": "DE",
+      "channel_id": "shop",
+      "product_id": "27007164",
+      "color_id": "05",
+      "size_id": "19",
+      "size_label": "19"
+    }
+  ]
+}

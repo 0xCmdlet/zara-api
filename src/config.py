@@ -20,6 +20,7 @@ class EnvConfig(BaseModel):
     smtp_password: str
     email_from: str
     email_to: str
+    admin_email: Optional[str] = None
     check_interval: int = 300
     log_level: str = "INFO"
     # Browser-based credential retrieval
@@ -43,6 +44,7 @@ def load_env_config() -> EnvConfig:
             smtp_password=os.getenv("SMTP_PASSWORD", ""),
             email_from=os.getenv("EMAIL_FROM", ""),
             email_to=os.getenv("EMAIL_TO", ""),
+            admin_email=os.getenv("ADMIN_EMAIL") or None,
             check_interval=int(os.getenv("CHECK_INTERVAL", "300")),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
             browser_headless=os.getenv("BROWSER_HEADLESS", "true").lower() in ("1", "true", "yes"),

@@ -5,6 +5,7 @@ import smtplib
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from typing import Optional
 
 from .models import Product, SkuAvailability
 
@@ -23,6 +24,7 @@ class EmailNotifier:
         smtp_password: str,
         email_from: str,
         email_to: str,
+        admin_email: Optional[str] = None,
     ):
         self.smtp_host = smtp_host
         self.smtp_port = smtp_port
@@ -30,6 +32,7 @@ class EmailNotifier:
         self.smtp_password = smtp_password
         self.email_from = email_from
         self.email_to = email_to
+        self.admin_email = admin_email
 
     def _create_html_body(
         self,
@@ -218,3 +221,29 @@ class EmailNotifier:
                     return False
 
         return False
+
+    def send_admin_alert(self, subject: str, body: str) -> bool:
+        """Send a plain-text warning email to the admin recipient.
+
+        Used to flag operational problems (e.g. a non-200 / blocked response),
+        not product availability. No-op if no admin address is configured.
+        """
+        if not self.admin_email:
+            logger.warning("No ADMIN_EMAIL configured; skipping admin alert")
+            return False
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = self.email_from
+        msg["To"] = self.admin_email
+        msg.attach(MIMEText(body, "plain"))
+
+        try:
+            with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port) as server:
+                server.login(self.smtp_username, self.smtp_password)
+                server.send_message(msg)
+            logger.info(f"Admin alert sent to {self.admin_email}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send admin alert: {e}")
+            return False
