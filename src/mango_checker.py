@@ -58,7 +58,7 @@ class MangoChecker:
         """Adapt a Mango product into the notifier/CSV's expected models."""
         sku = int(product.size_id) if product.size_id.isdigit() else 0
         adapted = Product(
-            name=product.name,
+            name=product.display_name,
             link=product.link or product.endpoint,
             api_endpoint=product.endpoint,
             size=product.size_label or product.size_id,
@@ -103,7 +103,7 @@ class MangoChecker:
             else:
                 notify = self.state.should_notify(product.key, available)
                 logger.info(
-                    f"{product.key} ({product.name}): "
+                    f"{product.key} ({product.display_name}): "
                     f"available={available} (notify: {notify})"
                 )
                 notified = False

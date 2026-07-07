@@ -13,16 +13,27 @@ from pydantic import BaseModel
 
 
 class MangoProduct(BaseModel):
-    """A single Mango size to track."""
+    """A single Mango size to track.
 
-    name: str
-    link: Optional[str] = None
-    country_iso: str = "DE"
-    channel_id: str = "shop"
+    Only ``product_id``, ``color_id`` and ``size_id`` are required - everything
+    else has a sensible default. Those three aren't boilerplate: they're the
+    exact product/colorway/size keys from Mango's stock response and define
+    what's being watched.
+    """
+
     product_id: str
     color_id: str
     size_id: str
+    name: Optional[str] = None
+    link: Optional[str] = None
+    country_iso: str = "DE"
+    channel_id: str = "shop"
     size_label: Optional[str] = None
+
+    @property
+    def display_name(self) -> str:
+        """Human label for emails/CSV (falls back to the product id)."""
+        return self.name or f"Mango {self.product_id} ({self.color_id}/{self.size_id})"
 
     @property
     def endpoint(self) -> str:

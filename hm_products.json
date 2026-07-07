@@ -1,0 +1,19 @@
+{
+  "products": [
+    {
+      "name": "H&M Test Product",
+      "product_id": "1357966",
+      "country": "de",
+      "link": "https://www2.hm.com/de_de/productpage.1357966001.html",
+      "skus": [
+        "1357966001002"
+      ]
+    },
+    {
+      "name": "H&M Sold-Out Watch (any size)",
+      "product_id": "1358798",
+      "country": "de",
+      "link": "https://www2.hm.com/de_de/productpage.1358798001.html"
+    }
+  ]
+}

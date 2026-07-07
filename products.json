@@ -11,13 +11,6 @@
       "name": "TAILLIERTER BLAZER ZW COLLECTION",
       "link": "https://www.zara.com/de/de/taillierter-blazer-zw-collection-p03736045.html?v1=522632459",
       "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/522632459/availability",
-      "size": "522626126",
-      "sku": 522626126
-    },
-    {
-      "name": "TAILLIERTER BLAZER ZW COLLECTION",
-      "link": "https://www.zara.com/de/de/taillierter-blazer-zw-collection-p03736045.html?v1=522632459",
-      "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/522632459/availability",
       "size": "522626127",
       "sku": 522626127
     },
@@ -39,15 +32,8 @@
       "name": "FLIESSENDER ZWEIREIHER – ZW COLLECTION",
       "link": "https://www.zara.com/de/de/fliessender-zweireiher-aus-der-zw-collection-p02714169.html?v1=519879734",
       "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/519879734/availability",
-      "size": "519875081",
-      "sku": 519875081
-    },
-    {
-      "name": "FLIESSENDER ZWEIREIHER – ZW COLLECTION",
-      "link": "https://www.zara.com/de/de/fliessender-zweireiher-aus-der-zw-collection-p02714169.html?v1=519879734",
-      "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/519879734/availability",
-      "size": "519875082",
-      "sku": 519875082
+      "size": "519875084",
+      "sku": 519875084
     },
     {
       "name": "BOMBERJACKE AUS 100 % LEDER ZW COLLECTION LIMITED EDITION",
@@ -118,6 +104,13 @@
       "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/503419516/availability",
       "size": "501623065",
       "sku": 501623065
+    },
+    {
+      "name": "VISOR MIT KONTRASTSTREIFEN",
+      "link": "https://www.zara.com/de/de/visor-mit-kontraststreifen-p03739044.html?v1=500325049",
+      "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/500325049/availability",
+      "size": "one size",
+      "sku": 505036030
     }
   ]
 }

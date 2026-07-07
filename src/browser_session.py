@@ -150,6 +150,33 @@ class BrowserSession:
             f"Unexpected status {status} for SKU {product.sku}: {body[:200]}"
         )
 
+    async def fetch_json(self, endpoint: str) -> dict:
+        """Fetch arbitrary JSON from a URL inside the browser session.
+
+        Same Akamai-authenticated in-browser fetch as :meth:`check_availability`
+        but endpoint-agnostic (used by non-Zara checkers, e.g. H&M).
+        """
+        if self._page is None:
+            raise RuntimeError("Session not started. Call start() first.")
+
+        logger.debug(f"In-browser fetch: {endpoint}")
+        result = await self._page.evaluate(_FETCH_JS, endpoint)
+        status = result.get("status")
+        body = result.get("body", "")
+
+        if status == 200:
+            try:
+                return json.loads(body)
+            except json.JSONDecodeError as e:
+                raise ApiError(f"Invalid JSON from {endpoint}: {e}")
+
+        if status in (401, 403) or "Access Denied" in body:
+            raise AuthenticationError(
+                f"Session rejected for {endpoint} (status {status})"
+            )
+
+        raise ApiError(f"Unexpected status {status} for {endpoint}: {body[:200]}")
+
     async def close(self) -> None:
         """Tear down the browser session."""
         try:
