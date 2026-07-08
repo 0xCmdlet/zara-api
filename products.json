@@ -111,6 +111,20 @@
       "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/500325049/availability",
       "size": "one size",
       "sku": 505036030
+    },
+    {
+      "name": "DOPPELREIHIGER BLAZER MIT KNÖPFEN ZW COLLECTION",
+      "link": "https://www.zara.com/de/de/doppelreihiger-blazer-mit-knopfen-%E2%80%93-zw-collection-p03736052.html?v1=507738821",
+      "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/507738821/availability",
+      "size": "L",
+      "sku": 507734616
+    },
+    {
+      "name": "DOPPELREIHIGER BLAZER MIT KNÖPFEN ZW COLLECTION",
+      "link": "https://www.zara.com/de/de/doppelreihiger-blazer-mit-knopfen-%E2%80%93-zw-collection-p03736052.html?v1=507738821",
+      "api_endpoint": "https://www.zara.com/itxrest/1/catalog/store/10705/product/id/507738821/availability",
+      "size": "M",
+      "sku": 507734615
     }
   ]
 }
